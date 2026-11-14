@@ -1,99 +1,100 @@
 package com.example.inputform;
 
-import android.app.DatePickerDialog;
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.DatePicker;
 import android.widget.EditText;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 public class DataInput extends AppCompatActivity {
+    private String[] status = {"full-time", "part-time", "student", "other"};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
 
-        EditText editText = findViewById(R.id.editTextDate2);
-        editText.setOnClickListener(v -> showDatePickerDialog(editText));
+        DatePicker dp = findViewById(R.id.DatePickerDOB);
+        dp.init(2004, 1, 13, null);
 
-        Button submitBtn = findViewById(R.id.button2);
-        submitBtn.setOnClickListener(v -> {
-            EditText nameBox = findViewById(R.id.editTextTextPersonName2);
-            EditText emailBox = findViewById(R.id.editTextTextEmailAddress2);
+        Button btnNext = findViewById(R.id.ButtonNext);
+        btnNext.setOnClickListener(v -> displayNextAlert());
 
-            String name = (nameBox != null) ? nameBox.getText().toString() : "Unknown";
-            String email = emailBox.getText().toString();
-            String dateOfBirth = editText.getText().toString();
+        Spinner sp = findViewById(R.id.spinner); // reference to the spinner
 
-            RadioGroup Rgroup = findViewById(R.id.maritalStatusGroup);
-            int selectedId = Rgroup.getCheckedRadioButtonId();
-
-            String maritalStatus = "None Selected";
-            if (selectedId != -1) {
-                RadioButton selectedButton = findViewById(selectedId);
-                maritalStatus = selectedButton.getText().toString();
-            }
-
-            String summaryMessage = "Name: " + name + "\n" +
-                    "Email: " + email + "\n" +
-                    "DOB: " + dateOfBirth + "\n" +
-                    "Status: " + maritalStatus;
-
-            new AlertDialog.Builder(DataInput.this)
-                    .setTitle("Success!")
-                    .setMessage(summaryMessage)
-                    .setPositiveButton("OK", null)
-                    .show();
-        });
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, status);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        sp.setAdapter(adapter);
     }
 
-    private void showDatePickerDialog(EditText dateInputField) {
-        DatePickerDialog.OnDateSetListener dateSetListener = (view, year, month, dayOfMonth) -> {
-            int displayMonth = month + 1;
-            String formattedDate = displayMonth + "/" + dayOfMonth + "/" + year;
-            dateInputField.setText(formattedDate);
-        };
+    private void displayNextAlert() {
+        CheckBox agreeTerms = findViewById(R.id.chkAgreeTerms);
 
-        int startYear = 2004;
-        int startMonth = 0;
-        int startDay = 1;
+        if (!agreeTerms.isChecked()) {
+            popupToast("Sorry, you need to agreed with the teams even " +
+                    "though you don't know what they are");
+            return;
+        }
 
-        DatePickerDialog dialog = new DatePickerDialog(this, dateSetListener, startYear, startMonth, startDay);
-        dialog.show();
+        // Get what the user entered
+        EditText nameInput = findViewById(R.id.editTextName);
+        DatePicker dobInput = findViewById(R.id.DatePickerDOB);
+        EditText emailInput = findViewById(R.id.editTextEmail);
+        Spinner sp = findViewById(R.id.spinner); // getting the reference
+
+        // Get the text entered in the EditText using getText()
+        String strName = nameInput.getText().toString();
+        String strDOB = dobInput.getDayOfMonth() + "/" + (dobInput.getMonth() + 1) +
+                "/" + dobInput.getYear();
+        String strEmail = emailInput.getText().toString();
+
+        int row = sp.getSelectedItemPosition(); // getting the index of the selected item
+        String strStatus = status[row]; // getting the selected item
+
+        new AlertDialog.Builder(this)
+                .setTitle("Details Entered")
+                .setMessage("Details entered\n"
+                        + strName + "\n" + strDOB + "\n" + strEmail + "\n" + strStatus)
+                .setNeutralButton("Back", (dialog, which) -> {
+                    // do nothing - it will just close when clicked
+                })
+                .show();
     }
 
-    public  boolean onCreateOptionsMenu(Menu menu) {
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.data_input, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        //find the menu item that is selected
-        int itemId = item.getItemId();
-        if (itemId == R.id.itemNext) {
+        // find the menu item that is selected
+        int id = item.getItemId();
+        if (id == R.id.itemNext) {
             displayNextAlert();
             return true;
-        } else if (itemId == R.id.itemExit) {
-            //do something
-            //finish();
+        } else if (id == R.id.itemExit) {
             popupToast("You want to exit why not just start another application");
             return true;
         } else {
@@ -101,15 +102,7 @@ public class DataInput extends AppCompatActivity {
         }
     }
 
-    private void displayNextAlert() {
-        new AlertDialog.Builder(this)
-                .setTitle("Next")
-                .setMessage("Next clicked")
-                .setPositiveButton("OK", null)
-                .show();
-    }
-
     private void popupToast(String message) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
     }
 }
