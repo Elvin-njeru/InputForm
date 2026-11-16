@@ -3,10 +3,14 @@
     <string name="name_prompt">"Name: "</string>
     <string name="DOB_prompt">"Date of Birth: "</string>
     <string name="email_prompt">Email</string>
+    <string name="comments_prompt">Optional Comments / Notes</string>
     <string name="next_command_prompt">Next</string>
 
     <string name="exit_command_label">Exit</string>
     <string name="next_command_label">Next</string>
+    <string name="menu_clear">Clear Form</string>
+    <string name="menu_view_records">View Records</string>
+    <string name="menu_about">About</string>
 
     <string name="status_prompt">Work Status </string>
     <string name="agree_terms_prompt">Do you Agree with the Terms and Conditions?</string>

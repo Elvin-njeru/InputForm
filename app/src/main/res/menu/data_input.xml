@@ -5,6 +5,15 @@
         android:id="@+id/itemNext"
         android:title="@string/next_command_label" />
     <item
+        android:id="@+id/itemViewRecords"
+        android:title="@string/menu_view_records" />
+    <item
+        android:id="@+id/itemClear"
+        android:title="@string/menu_clear" />
+    <item
+        android:id="@+id/itemAbout"
+        android:title="@string/menu_about" />
+    <item
         android:id="@+id/itemExit"
         android:title="@string/exit_command_label" />
 </menu>
