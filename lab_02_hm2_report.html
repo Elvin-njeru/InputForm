@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Lab 02 Homework 2 Report: Input Forms, Validation and AlertDialog Confirmation</title>
+<style>
+  body {
+    font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
+    line-height: 1.6;
+    color: #1a1a1a;
+    margin: 40px auto;
+    max-width: 900px;
+    padding: 0 20px;
+  }
+  h1 {
+    color: #0b3c5d;
+    border-bottom: 2px solid #0b3c5d;
+    padding-bottom: 8px;
+    margin-bottom: 6px;
+    font-size: 24pt;
+  }
+  h2 {
+    color: #1d2731;
+    border-bottom: 1px solid #c8d6e5;
+    padding-bottom: 5px;
+    margin-top: 30px;
+    font-size: 16pt;
+  }
+  h3 {
+    color: #328cc1;
+    margin-top: 20px;
+    font-size: 13pt;
+  }
+  .header-box {
+    background-color: #f1f5f9;
+    border-left: 5px solid #0b3c5d;
+    padding: 14px 18px;
+    margin-bottom: 25px;
+    font-size: 11pt;
+  }
+  .header-box p {
+    margin: 4px 0;
+  }
+  .callout-box {
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-left: 4px solid #328cc1;
+    padding: 12px 16px;
+    margin: 16px 0;
+    border-radius: 4px;
+  }
+  pre {
+    background-color: #f8f9fa;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px 16px;
+    overflow-x: auto;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 10pt;
+    line-height: 1.45;
+  }
+  code {
+    font-family: 'Consolas', 'Courier New', monospace;
+    background-color: #eef2f6;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 10pt;
+  }
+  pre code {
+    background-color: transparent;
+    padding: 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 18px 0;
+    font-size: 10.5pt;
+  }
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 9px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background-color: #e2e8f0;
+    font-weight: bold;
+    color: #0b3c5d;
+  }
+  tr:nth-child(even) {
+    background-color: #f8fafc;
+  }
+  .diagram-container {
+    background-color: #eef6fc;
+    border: 1px solid #b9d9eb;
+    border-radius: 6px;
+    padding: 16px;
+    margin: 20px 0;
+    font-family: 'Consolas', monospace;
+    font-size: 10pt;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<h1>Lab_02_hm2: Input Forms, Validation and AlertDialog Confirmation</h1>
+
+<div class="header-box">
+  <p><strong>Institution:</strong> Jomo Kenyatta University of Agriculture and Technology (JKUAT)</p>
+  <p><strong>Department:</strong> Department of Computing | ICS 2300: Mobile Application Development</p>
+  <p><strong>Instructor:</strong> Dr. Lawrence Nderu</p>
+  <p><strong>Module Topic:</strong> Form Design, Validation Rules, Lifecycle State Preservation, and Confirmation Dialogs</p>
+  <p><strong>Author / Student:</strong> Elvin Njeru</p>
+  <p><strong>Application:</strong> FormInputExample (Package: <code>com.example.inputform</code>)</p>
+  <p><strong>Environment:</strong> Linux x86_64, Android Studio Ladybug/Jellyfish, Android API 37, Java 11 / Gradle 9.4</p>
+  <p><strong>Date:</strong> November 16, 2026</p>
+</div>
+
+<h2>1. Problem and Approach</h2>
+
+<h3>1.1 Task Description</h3>
+<p>
+The objective of this laboratory exercise is to construct, validate, and test a responsive Android data capture form that incorporates structured user input verification, explicit confirmation dialogs, configuration change resilience (screen rotation), and responsive UX considerations (small displays, large accessibility text, and on-screen soft keyboard visibility). The system captures mandatory fields, single-choice selections, and optional annotations, validating them before presenting a modal summary with dual <strong>Confirm</strong> and <strong>Edit / Cancel</strong> paths.
+</p>
+
+<h3>1.2 Assumptions</h3>
+<ul>
+  <li><strong>Field Structure:</strong>
+    <ul>
+      <li><strong>Name:</strong> Required alphanumeric text; cannot be blank.</li>
+      <li><strong>Email:</strong> Required RFC-compliant email string checked via Android's <code>Patterns.EMAIL_ADDRESS</code> regex.</li>
+      <li><strong>Date of Birth:</strong> Required date selected via embedded <code>DatePicker</code>; must represent a historical date (not in the future).</li>
+      <li><strong>Work Status:</strong> Single-choice selection driven by a dynamic <code>Spinner</code> backed by an <code>ArrayAdapter</code>.</li>
+      <li><strong>Comments / Notes:</strong> Explicitly optional multiline field that may remain empty without halting form submission.</li>
+      <li><strong>Terms Agreement:</strong> Mandatory boolean <code>CheckBox</code> required prior to finalizing draft review.</li>
+    </ul>
+  </li>
+  <li><strong>Data Ownership vs. Committal:</strong> The form activity owns the in-memory draft state until the user explicitly executes the "Confirm" action. Cancellation must guarantee zero side-effects and retain all entered values for user correction.</li>
+</ul>
+
+<h3>1.3 Intended System Behaviour</h3>
+<ol>
+  <li><strong>Responsive Presentation:</strong> The form is hosted within a vertical <code>ScrollView</code> container to prevent layout clipping and afford fluid vertical scrolling when software keyboards (IME) occupy the viewport.</li>
+  <li><strong>Strict Pre-Confirmation Validation:</strong> When the user triggers submission, fields are checked sequentially. If any requirement fails, validation halts, visual error indicators (<code>setError()</code>) and focus highlights are assigned to the offending widget, and actionable Toast warnings are emitted.</li>
+  <li><strong>Non-Destructive Review:</strong> A modal <code>AlertDialog</code> summarizes valid inputs. Selecting <strong>Edit / Cancel</strong> dismisses the dialog with 100% preservation of all widget values. Selecting <strong>Confirm</strong> triggers official committal and navigation to the preview screen.</li>
+  <li><strong>Configuration Resilience:</strong> Rotating the device between portrait and landscape preserves all entered draft text, calendar settings, and spinner selections through Android's instance state bundles.</li>
+</ol>
+
+<h2>2. Design and Reasoning</h2>
+
+<h3>2.1 Event Flow Architecture</h3>
+<p>
+The following event trace illustrates the end-to-end execution path from the user's click interaction through multi-tier validation, modal confirmation, and dual resolution branches:
+</p>
+
+<div class="diagram-container">
+  <strong>EVENT TRACE: BUTTON CLICK &rarr; VALIDATION &rarr; CONFIRMATION &rarr; RESOLUTION</strong><br><br>
+  [ User taps "Submit" Button / Menu Item ]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&darr;<br>
+  [ DataInput.handleSubmitAndConfirm() ]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&darr;<br>
+  [ TIER 1: Validate Name (strName.isEmpty()?) ]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&boxdr;&boxh;&boxh; YES &rarr; nameInput.setError(), nameInput.requestFocus(), Toast &rarr; [HALT]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&boxur;&boxh;&boxh; NO  &rarr; Proceed to Tier 2<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&darr;<br>
+  [ TIER 2: Validate Email (Patterns.EMAIL_ADDRESS.matcher()) ]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&boxdr;&boxh;&boxh; INVALID &rarr; emailInput.setError(), emailInput.requestFocus(), Toast &rarr; [HALT]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&boxur;&boxh;&boxh; VALID   &rarr; Proceed to Tier 3<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&darr;<br>
+  [ TIER 3: Validate Date of Birth (chosenDate.after(today)?) ]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&boxdr;&boxh;&boxh; FUTURE DATE &rarr; Toast warning &rarr; [HALT]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&boxur;&boxh;&boxh; VALID PAST  &rarr; Proceed to Tier 4<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&darr;<br>
+  [ TIER 4: Validate Terms Checkbox (agreeTerms.isChecked()?) ]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&boxdr;&boxh;&boxh; UNCHECKED &rarr; Toast warning &rarr; [HALT]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&boxur;&boxh;&boxh; CHECKED   &rarr; Validation Complete!<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&darr;<br>
+  [ Extract Optional Comments + Single-Choice Spinner Status ]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&darr;<br>
+  [ Build and Display AlertDialog Summary ("Confirm Submission") ]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&boxdr;&boxh;&boxh; [User taps "Edit / Cancel"] &rarr; Dialog dismissed; all widget inputs retained [NO COMMIT]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&boxur;&boxh;&boxh; [User taps "Confirm"]       &rarr; commitRecord() &rarr; Intent launched &rarr; DisplayActivity [COMMITTED]
+</div>
+
+<h3>2.2 Displaying a Dialog vs. Committing a Record</h3>
+<p>
+A fundamental architectural principle demonstrated in this lab is the distinction between <em>displaying a confirmation dialog</em> and <em>committing a record</em>:
+</p>
+<ul>
+  <li><strong>Displaying a Dialog (Transient Presentation):</strong> A modal <code>AlertDialog</code> is an ephemeral user interface component rendered on the window manager layer. It merely mirrors the current state of local view memory for human verification. Displaying the dialog does not mutate application storage, trigger database insertions, issue network requests, or modify persistent state. If the process is killed or the user cancels, the dialog vanishes without side effects.</li>
+  <li><strong>Committing a Record (State Transition):</strong> Committal is the permanent or transactional acceptance of verified data. It transitions the data from an editable draft into persistent storage (e.g., Room database, SharedPreferences, REST API backend, or cross-activity navigation payload). Committal only occurs when the user explicitly triggers the positive confirmation listener (<code>setPositiveButton("Confirm", ...)</code>).</li>
+</ul>
+
+<h3>2.3 Responsive Layout &amp; Accessibility Remediation</h3>
+<p>
+To satisfy diverse mobile form factors, the layout was architected with the following considerations:
+</p>
+<ul>
+  <li><strong>Scroll Container Justification:</strong> Wrapping the vertical input hierarchy in a root <code>ScrollView</code> with <code>android:fillViewport="true"</code> ensures that when users focus text inputs and the software keyboard (IME) slides up on small screens (e.g., 4.7" devices or split-screen mode), form controls remain fully scrollable without being occluded.</li>
+  <li><strong>Accessible Labels vs. Placeholders:</strong> Floating hints and placeholders often disappear or cause confusion once typing begins. Explicit, permanent bold <code>TextView</code> labels were placed directly above each input field.</li>
+  <li><strong>Accessibility Remediation:</strong>
+    <ul>
+      <li><em>Identified Issue:</em> Standard input fields often lack explicit programmatic associations, causing Android TalkBack screen readers to announce generic labels like "Editing text" without contextual guidance. Furthermore, lack of autofill hints degrades accessibility for motor-impaired users.</li>
+      <li><em>Correction Applied:</em> Integrated explicit <code>android:autofillHints</code> (e.g., <code>name</code>, <code>emailAddress</code>) and paired permanent visible labels. Ensured touch targets across the <code>Spinner</code>, <code>CheckBox</code>, and <code>Button</code> satisfy the WCAG minimum recommendation of 48dp height/width.</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>2.4 Conceptual Analysis &amp; Question Responses</h3>
+
+<div class="callout-box">
+  <strong>1. Why must validation happen before confirmation?</strong><br>
+  <ul>
+    <li><strong>Integrity and User Trust:</strong> Presenting an unvalidated summary implies to the user that their inputs are acceptable. Showing a confirmation dialog with invalid data (e.g., malformed email or missing name), only to reject it after the user clicks "Confirm", degrades user trust and creates cognitive friction.</li>
+    <li><strong>Resource Efficiency:</strong> Formatting summary strings, calculating calendar bounds, and constructing modal dialog hierarchies consumes memory and window manager allocations. Validating early (failing fast) avoids unnecessary UI allocations.</li>
+    <li><strong>Security and Defensive Design:</strong> Strict pre-confirmation validation ensures that downstream consumers (dialog builders, database serializers, network payloads) receive sanitized, non-null, and type-safe data.</li>
+  </ul>
+</div>
+
+<div class="callout-box">
+  <strong>2. Which component owns the draft, and when may it be cleared?</strong><br>
+  <ul>
+    <li><strong>Draft Ownership:</strong> The current foreground <code>Activity</code> (<code>DataInput</code>) and its associated view hierarchy own the draft state in local memory. During configuration changes (rotation), ownership is temporarily held by the Android framework via the <code>onSaveInstanceState(Bundle)</code> mechanism.</li>
+    <li><strong>When Draft May Be Cleared:</strong>
+      <ol>
+        <li><strong>Upon Successful Committal:</strong> Only after the user confirms submission and the record is safely persisted or handed off to the destination activity.</li>
+        <li><strong>Explicit User Reset:</strong> When the user deliberately chooses the "Clear Form" action from the options menu.</li>
+        <li><strong>Never on Edit/Cancel:</strong> Dismissing or cancelling the confirmation dialog must <em>never</em> clear the draft; the user must be returned to their populated form for easy editing.</li>
+      </ol>
+    </li>
+  </ul>
+</div>
+
+<div class="callout-box">
+  <strong>3. What evidence shows that cancelling did not commit anything?</strong><br>
+  <ul>
+    <li><strong>Retained View State:</strong> Upon tapping "Edit / Cancel", the dialog dismisses and the user observes all entered data (name, email, selected date, spinner position, comments, checkbox) exactly as entered, proving no form destruction occurred.</li>
+    <li><strong>Zero State-Changing Invocations:</strong> Inspecting the negative button callback reveals:
+      <pre><code>.setNegativeButton("Edit / Cancel", (dialog, which) -> {
+    popupToast("Submission cancelled. Values retained for editing.");
+})</code></pre>
+      No call to <code>commitRecord()</code>, no <code>startActivity()</code> intent invocation, and no repository write operations exist in this execution path.</li>
+    <li><strong>Back Stack Invariance:</strong> The navigation stack remains unchanged; no new task records or activity instances are pushed onto the back stack.</li>
+  </ul>
+</div>
+
+<h2>3. Implementation Evidence (Source Code)</h2>
+
+<h3>3.1 Form Layout with Labels, DatePicker, Spinner, &amp; Optional Fields (<code>res/layout/activity_main.xml</code>)</h3>
+<pre><code>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    tools:context=".DataInput"&gt;
+
+    &lt;LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp"&gt;
+
+        &lt;TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/name_prompt"
+            android:textStyle="bold" /&gt;
+
+        &lt;EditText
+            android:id="@+id/editTextName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:autofillHints="name"
+            android:hint="@string/name_prompt"
+            android:inputType="textPersonName" /&gt;
+
+        &lt;TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/email_prompt"
+            android:textStyle="bold" /&gt;
+
+        &lt;EditText
+            android:id="@+id/editTextEmail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:autofillHints="emailAddress"
+            android:hint="@string/email_prompt"
+            android:inputType="textEmailAddress" /&gt;
+
+        &lt;TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/DOB_prompt"
+            android:textStyle="bold" /&gt;
+
+        &lt;DatePicker
+            android:id="@+id/DatePickerDOB"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:calendarViewShown="false"
+            android:datePickerMode="spinner" /&gt;
+
+        &lt;TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/status_prompt"
+            android:textStyle="bold" /&gt;
+
+        &lt;Spinner
+            android:id="@+id/spinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:prompt="@string/status_prompt" /&gt;
+
+        &lt;TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/comments_prompt"
+            android:textStyle="bold" /&gt;
+
+        &lt;EditText
+            android:id="@+id/editTextComments"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/comments_prompt"
+            android:inputType="textMultiLine"
+            android:minLines="2" /&gt;
+
+        &lt;CheckBox
+            android:id="@+id/chkAgreeTerms"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/agree_terms_prompt" /&gt;
+
+        &lt;Button
+            android:id="@+id/ButtonNext"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="20dp"
+            android:text="@string/submit_btn" /&gt;
+
+    &lt;/LinearLayout&gt;
+&lt;/ScrollView&gt;</code></pre>
+
+<h3>3.2 Validation &amp; Confirmation Handler (<code>DataInput.java</code>)</h3>
+<pre><code>private void handleSubmitAndConfirm() {
+    EditText nameInput = findViewById(R.id.editTextName);
+    EditText emailInput = findViewById(R.id.editTextEmail);
+    DatePicker dobInput = findViewById(R.id.DatePickerDOB);
+    Spinner sp = findViewById(R.id.spinner);
+    EditText commentsInput = findViewById(R.id.editTextComments);
+    CheckBox agreeTerms = findViewById(R.id.chkAgreeTerms);
+
+    // 1. Validation: Name (required, non-empty)
+    String strName = nameInput.getText().toString().trim();
+    if (strName.isEmpty()) {
+        nameInput.setError("Name is required");
+        nameInput.requestFocus();
+        popupToast("Validation failed: Please enter a name");
+        return;
+    }
+
+    // 2. Validation: Email (required, valid email pattern)
+    String strEmail = emailInput.getText().toString().trim();
+    if (strEmail.isEmpty()) {
+        emailInput.setError("Email is required");
+        emailInput.requestFocus();
+        popupToast("Validation failed: Please enter an email address");
+        return;
+    } else if (!Patterns.EMAIL_ADDRESS.matcher(strEmail).matches()) {
+        emailInput.setError("Enter a valid email address (e.g. name@domain.com)");
+        emailInput.requestFocus();
+        popupToast("Validation failed: Invalid email format");
+        return;
+    }
+
+    // 3. Validation: Date of Birth (must not be in the future)
+    Calendar chosenDate = Calendar.getInstance();
+    chosenDate.set(dobInput.getYear(), dobInput.getMonth(), dobInput.getDayOfMonth());
+    Calendar today = Calendar.getInstance();
+    if (chosenDate.after(today)) {
+        popupToast("Validation failed: Date of birth cannot be in the future");
+        return;
+    }
+
+    // 4. Validation: Mandatory Terms Checkbox
+    if (!agreeTerms.isChecked()) {
+        popupToast("Validation failed: Please agree with the terms and conditions");
+        return;
+    }
+
+    // Extract single-choice spinner and optional comments
+    int row = sp.getSelectedItemPosition();
+    String strStatus = (row &gt;= 0 &amp;&amp; row &lt; status.length) ? status[row] : "Unknown";
+    String strDOB = dobInput.getDayOfMonth() + "/" + (dobInput.getMonth() + 1) + "/" + dobInput.getYear();
+    String strComments = commentsInput.getText().toString().trim();
+    if (strComments.isEmpty()) {
+        strComments = "(None provided)";
+    }
+
+    String readableSummary = "FORM SUMMARY\n"
+            + "------------------------\n"
+            + "Name: " + strName + "\n"
+            + "Email: " + strEmail + "\n"
+            + "DOB: " + strDOB + "\n"
+            + "Work Status: " + strStatus + "\n"
+            + "Comments: " + strComments + "\n"
+            + "Terms Agreed: Yes";
+
+    // Show Confirmation AlertDialog with Confirm and Edit/Cancel behaviour
+    new AlertDialog.Builder(this)
+            .setTitle("Confirm Submission")
+            .setMessage(readableSummary)
+            .setPositiveButton("Confirm", (dialog, which) -&gt; {
+                commitRecord(readableSummary);
+            })
+            .setNegativeButton("Edit / Cancel", (dialog, which) -&gt; {
+                popupToast("Submission cancelled. Values retained for editing.");
+            })
+            .show();
+}</code></pre>
+
+<h3>3.3 Instance State Preservation Across Configuration Changes (Rotation)</h3>
+<pre><code>@Override
+protected void onSaveInstanceState(@NonNull Bundle outState) {
+    super.onSaveInstanceState(outState);
+    EditText nameInput = findViewById(R.id.editTextName);
+    EditText emailInput = findViewById(R.id.editTextEmail);
+    EditText commentsInput = findViewById(R.id.editTextComments);
+    DatePicker dobInput = findViewById(R.id.DatePickerDOB);
+    Spinner sp = findViewById(R.id.spinner);
+    CheckBox agreeTerms = findViewById(R.id.chkAgreeTerms);
+
+    outState.putString(KEY_NAME, nameInput.getText().toString());
+    outState.putString(KEY_EMAIL, emailInput.getText().toString());
+    outState.putString(KEY_COMMENTS, commentsInput.getText().toString());
+    outState.putInt(KEY_YEAR, dobInput.getYear());
+    outState.putInt(KEY_MONTH, dobInput.getMonth());
+    outState.putInt(KEY_DAY, dobInput.getDayOfMonth());
+    outState.putInt(KEY_SPINNER_POS, sp.getSelectedItemPosition());
+    outState.putBoolean(KEY_TERMS, agreeTerms.isChecked());
+}
+
+@Override
+protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    // ... layout inflation ...
+    DatePicker dp = findViewById(R.id.DatePickerDOB);
+    if (savedInstanceState != null) {
+        int y = savedInstanceState.getInt(KEY_YEAR, 2004);
+        int m = savedInstanceState.getInt(KEY_MONTH, 1);
+        int d = savedInstanceState.getInt(KEY_DAY, 13);
+        dp.init(y, m, d, null);
+    } else {
+        dp.init(2004, 1, 13, null);
+    }
+    // Spinner restore
+    if (savedInstanceState != null) {
+        sp.setSelection(savedInstanceState.getInt(KEY_SPINNER_POS, 0));
+    }
+}</code></pre>
+
+<h2>4. Test Table &amp; Traceable Evidence</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Test Case ID</th>
+      <th>Scenario / Interaction</th>
+      <th>Test Input Data</th>
+      <th>Expected System Response</th>
+      <th>Observed Result</th>
+      <th>Pass / Fail</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>TC-VAL-01</strong></td>
+      <td>Blank Name validation</td>
+      <td>Name: <code>""</code></td>
+      <td>Focus shifts to Name; visual <code>setError()</code>; Toast warning emitted; no dialog.</td>
+      <td><code>setError("Name is required")</code> shown; Toast emitted; execution halts.</td>
+      <td><strong>PASS</strong></td>
+    </tr>
+    <tr>
+      <td><strong>TC-VAL-02</strong></td>
+      <td>Malformed Email validation</td>
+      <td>Email: <code>"invalidemail"</code></td>
+      <td>Focus shifts to Email; <code>setError()</code> flags missing '@'; no dialog.</td>
+      <td><code>setError()</code> displays "Enter a valid email address"; execution halts.</td>
+      <td><strong>PASS</strong></td>
+    </tr>
+    <tr>
+      <td><strong>TC-VAL-03</strong></td>
+      <td>Future Date of Birth validation</td>
+      <td>Date: <code>Dec 31, 2030</code></td>
+      <td>Date checked against <code>Calendar.getInstance()</code>; halts with Toast.</td>
+      <td>Toast "Validation failed: Date of birth cannot be in the future" shown.</td>
+      <td><strong>PASS</strong></td>
+    </tr>
+    <tr>
+      <td><strong>TC-VAL-04</strong></td>
+      <td>Unchecked Terms validation</td>
+      <td>Checkbox: <code>Unchecked</code></td>
+      <td>Validation detects unchecked state; emits Toast warning; halts.</td>
+      <td>Toast "Validation failed: Please agree with the terms..." shown.</td>
+      <td><strong>PASS</strong></td>
+    </tr>
+    <tr>
+      <td><strong>TC-CONF-01</strong></td>
+      <td>Valid form submission</td>
+      <td>Valid Name, Email, DOB, Status, Optional Comments, Terms checked</td>
+      <td>Multi-tier validation passes; <code>AlertDialog</code> pops up with full readable summary.</td>
+      <td>Dialog "Confirm Submission" renders summary accurately with Confirm and Edit buttons.</td>
+      <td><strong>PASS</strong></td>
+    </tr>
+    <tr>
+      <td><strong>TC-CONF-02</strong></td>
+      <td>Cancel / Edit confirmation dialog</td>
+      <td>Tap "Edit / Cancel" on dialog</td>
+      <td>Dialog dismisses; all form inputs (Name, Email, Date, Spinner, Comments) remain intact; no commit.</td>
+      <td>Dialog dismissed; inputs 100% retained; Toast confirms cancellation.</td>
+      <td><strong>PASS</strong></td>
+    </tr>
+    <tr>
+      <td><strong>TC-CONF-03</strong></td>
+      <td>Positive confirmation</td>
+      <td>Tap "Confirm" on dialog</td>
+      <td><code>commitRecord()</code> called; Toast emitted; navigates to <code>DisplayActivity</code>.</td>
+      <td>Toast "Record successfully committed!" shown; transitions to display screen.</td>
+      <td><strong>PASS</strong></td>
+    </tr>
+    <tr>
+      <td><strong>TC-RESP-01</strong></td>
+      <td>Screen Rotation (Draft state preservation)</td>
+      <td>Form half-filled; rotate Portrait &rarr; Landscape &rarr; Portrait</td>
+      <td>Activity recreates; all text, calendar date, and spinner index restored from Bundle.</td>
+      <td>Form content intact across orientation changes without data loss.</td>
+      <td><strong>PASS</strong></td>
+    </tr>
+    <tr>
+      <td><strong>TC-RESP-02</strong></td>
+      <td>Keyboard visibility on small viewport</td>
+      <td>Focus comments field with software keyboard open</td>
+      <td><code>ScrollView</code> adjusts; inputs remain scrollable without clipping.</td>
+      <td>Keyboard pushes viewport; all controls accessible via vertical scroll.</td>
+      <td><strong>PASS</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>5. Conclusion</h2>
+<p>
+The implemented form architecture delivers robust input validation, clear separation between draft viewing and data committal, seamless configuration change persistence across rotation, and accessible, responsive styling. All specifications outlined in the Lab 02 criteria have been verified and documented.
+</p>
+
+</body>
+</html>

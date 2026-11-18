@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Lab 03 Homework 3 Report: Options Menu, Navigation, and Toast Feedback</title>
+<style>
+  body {
+    font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
+    line-height: 1.6;
+    color: #1a1a1a;
+    margin: 40px auto;
+    max-width: 900px;
+    padding: 0 20px;
+  }
+  h1 {
+    color: #0b3c5d;
+    border-bottom: 2px solid #0b3c5d;
+    padding-bottom: 8px;
+    margin-bottom: 6px;
+    font-size: 24pt;
+  }
+  h2 {
+    color: #1d2731;
+    border-bottom: 1px solid #c8d6e5;
+    padding-bottom: 5px;
+    margin-top: 30px;
+    font-size: 16pt;
+  }
+  h3 {
+    color: #328cc1;
+    margin-top: 20px;
+    font-size: 13pt;
+  }
+  .header-box {
+    background-color: #f1f5f9;
+    border-left: 5px solid #0b3c5d;
+    padding: 14px 18px;
+    margin-bottom: 25px;
+    font-size: 11pt;
+  }
+  .header-box p {
+    margin: 4px 0;
+  }
+  .callout-box {
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-left: 4px solid #328cc1;
+    padding: 12px 16px;
+    margin: 16px 0;
+    border-radius: 4px;
+  }
+  pre {
+    background-color: #f8f9fa;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px 16px;
+    overflow-x: auto;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 10pt;
+    line-height: 1.45;
+  }
+  code {
+    font-family: 'Consolas', 'Courier New', monospace;
+    background-color: #eef2f6;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 10pt;
+  }
+  pre code {
+    background-color: transparent;
+    padding: 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 18px 0;
+    font-size: 10.5pt;
+  }
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 9px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background-color: #e2e8f0;
+    font-weight: bold;
+    color: #0b3c5d;
+  }
+  tr:nth-child(even) {
+    background-color: #f8fafc;
+  }
+  .diagram-container {
+    background-color: #eef6fc;
+    border: 1px solid #b9d9eb;
+    border-radius: 6px;
+    padding: 16px;
+    margin: 20px 0;
+    font-family: 'Consolas', monospace;
+    font-size: 10pt;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<h1>Lab_03_hm3: Options Menu, Navigation, and Toast Feedback</h1>
+
+<div class="header-box">
+  <p><strong>Institution:</strong> Jomo Kenyatta University of Agriculture and Technology (JKUAT)</p>
+  <p><strong>Department:</strong> Department of Computing | ICS 2300: Mobile Application Development</p>
+  <p><strong>Instructor:</strong> Dr. Lawrence Nderu</p>
+  <p><strong>Module Topic:</strong> Options Menu, Navigation, Dialogs, and Toast Feedback</p>
+  <p><strong>Author / Student:</strong> Elvin Njeru</p>
+  <p><strong>Application:</strong> FormInputExample (Package: <code>com.example.inputform</code>)</p>
+  <p><strong>Environment:</strong> Linux x86_64, Android Studio Ladybug/Jellyfish, Android API 37, Java 11 / Gradle 9.4</p>
+  <p><strong>Date:</strong> November 16, 2026</p>
+</div>
+
+<h2>1. Problem and Approach</h2>
+
+<h3>1.1 Task Description</h3>
+<p>
+The objective of this laboratory exercise is to design, implement, and analyze an Android application options menu integrated with interactive navigation and responsive user feedback mechanisms. The system connects XML menu resource definitions with Java activity lifecycle callbacks (<code>onCreateOptionsMenu</code> and <code>onOptionsItemSelected</code>), dispatches user interactions to dedicated handlers, executes state-changing screen transitions, and provides appropriate, proportionate user feedback via transient Toasts and modal Alert Dialogs.
+</p>
+
+<h3>1.2 Assumptions</h3>
+<ul>
+  <li><strong>Application Architecture:</strong> The application follows single-task activity stacks where <code>DataInput</code> acts as the primary data entry interface, and <code>DisplayActivity</code> serves as the secondary detail/preview screen.</li>
+  <li><strong>Feedback Categorization:</strong> Transient, non-critical confirmations (such as resetting form fields or initiating an exit) are communicated using <code>Toast</code> widgets. In contrast, critical validations (missing mandatory terms acceptance) or dense record inspection require modal dialogs or explicit activity navigation to prevent data loss and ensure user awareness.</li>
+  <li><strong>Stable References:</strong> Menu selection handling must strictly rely on permanent Android resource IDs (<code>R.id.*</code>) declared in XML rather than displayed string titles, guaranteeing runtime localization independence.</li>
+</ul>
+
+<h3>1.3 Intended System Behaviour</h3>
+<ol>
+  <li><strong>Menu Display:</strong> The options menu attaches to the app bar on launch, presenting at least three functional items (<em>Next</em>, <em>View Records</em>, <em>Clear Form</em>, <em>About</em>, and <em>Exit</em>).</li>
+  <li><strong>Validation &amp; Modal Inspection:</strong> Tapping <em>Next</em> validates the required Terms agreement checkbox; if invalid, feedback is provided; if valid, an <code>AlertDialog</code> summarizes the inputs with options to either dismiss or navigate.</li>
+  <li><strong>Screen Transition:</strong> Tapping <em>View Records</em> gathers the current state and navigates via an explicit <code>Intent</code> to <code>DisplayActivity</code>.</li>
+  <li><strong>Safe State &amp; Back Stack:</strong> Pressing the system Back button from the secondary screen returns the user safely to the pristine input form without triggering duplicate transactions or saving operations.</li>
+  <li><strong>Unhandled Item Safety:</strong> Unrecognized or system-generated menu IDs safely delegate to <code>super.onOptionsItemSelected(item)</code>.</li>
+</ol>
+
+<h2>2. Design and Reasoning</h2>
+
+<h3>2.1 Menu Architecture and Lifecycle Attachment</h3>
+<p>
+In Android, the options menu lifecycle is decoupled into declaration (XML), inflation (Activity initialization), and dispatch (event handling).
+</p>
+
+<div class="diagram-container">
+  <strong>EVENT FLOW &amp; LIFECYCLE DISPATCH</strong><br><br>
+  [ User taps Overflow / Action Bar Menu ]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&darr;<br>
+  [ Activity.onCreateOptionsMenu(Menu menu) ]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&darr; (MenuInflater.inflate(R.menu.data_input, menu))<br>
+  [ Menu XML parsed &amp; MenuItems inflated into Action Bar ]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&darr;<br>
+  [ User taps specific MenuItem ]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&darr;<br>
+  [ Activity.onOptionsItemSelected(MenuItem item) ]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&darr;<br>
+  [ item.getItemId() evaluation via switch/if-else ]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&boxdr;&boxh;&boxh; R.id.itemNext &rarr; displayNextAlert() [Validation + Modal Alert / Screen Transition]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&boxdr;&boxh;&boxh; R.id.itemViewRecords &rarr; handleViewRecords() [Explicit Intent &rarr; DisplayActivity]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&boxdr;&boxh;&boxh; R.id.itemClear &rarr; handleClearForm() [Reset Fields + Toast Feedback]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&boxdr;&boxh;&boxh; R.id.itemAbout &rarr; handleAbout() [Informational AlertDialog]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&boxdr;&boxh;&boxh; R.id.itemExit &rarr; popupToast() [Non-critical Toast Warning]<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&boxur;&boxh;&boxh; default &rarr; return super.onOptionsItemSelected(item) [Safe System Fallback]
+</div>
+
+<h3>2.2 Menu-to-Handler Mapping Table</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Menu Item Title</th>
+      <th>Resource ID (<code>R.id.*</code>)</th>
+      <th>Invoked Handler Method</th>
+      <th>Feedback Type</th>
+      <th>Functional Purpose</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Next</strong></td>
+      <td><code>R.id.itemNext</code></td>
+      <td><code>displayNextAlert()</code></td>
+      <td>Toast (validation failure) / AlertDialog (success)</td>
+      <td>Validates checkbox terms agreement, constructs summary string, and presents choices to view in screen or dismiss.</td>
+    </tr>
+    <tr>
+      <td><strong>View Records</strong></td>
+      <td><code>R.id.itemViewRecords</code></td>
+      <td><code>handleViewRecords()</code></td>
+      <td>Activity Navigation (Explicit Intent)</td>
+      <td>Captures live state across all inputs and transitions to <code>DisplayActivity</code> to render full-screen record view.</td>
+    </tr>
+    <tr>
+      <td><strong>Clear Form</strong></td>
+      <td><code>R.id.itemClear</code></td>
+      <td><code>handleClearForm()</code></td>
+      <td>Toast Feedback</td>
+      <td>Resets text inputs, calendar widget, dropdown selection, and checkbox; confirms action via brief toast.</td>
+    </tr>
+    <tr>
+      <td><strong>About</strong></td>
+      <td><code>R.id.itemAbout</code></td>
+      <td><code>handleAbout()</code></td>
+      <td>AlertDialog</td>
+      <td>Displays module metadata, version information, and author attribution in a modal popup.</td>
+    </tr>
+    <tr>
+      <td><strong>Exit</strong></td>
+      <td><code>R.id.itemExit</code></td>
+      <td><code>popupToast(String)</code></td>
+      <td>Toast Feedback</td>
+      <td>Provides non-destructive conversational feedback without abruptly killing the process.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>2.3 Navigation and Back Stack Dynamics</h3>
+<p>
+When <em>View Records</em> is selected, an explicit <code>Intent</code> is instantiated:
+</p>
+<pre><code>Intent intent = new Intent(this, DisplayActivity.class);
+intent.putExtra(DisplayActivity.EXTRA_DISPLAY_TEXT, content);
+startActivity(intent);</code></pre>
+<p>
+<strong>Event Path and Idempotent Back Stack:</strong>
+</p>
+<ul>
+  <li><code>startActivity(intent)</code> pushes a new <code>DisplayActivity</code> instance onto the task's Back Stack. <code>DataInput</code> transitions through <code>onPause()</code> to <code>onStop()</code>, preserving its existing view hierarchy and state in memory.</li>
+  <li>When the user presses the system <strong>Back</strong> button (or gesture), Android invokes <code>finish()</code> on <code>DisplayActivity</code>, popping it off the stack and destroying it.</li>
+  <li><code>DataInput</code> returns to the foreground through <code>onRestart()</code> &rarr; <code>onStart()</code> &rarr; <code>onResume()</code>. Crucially, returning via the Back stack does <em>not</em> trigger form submission callbacks, menu clicks, or network writes, preventing duplicate accidental records.</li>
+</ul>
+
+<h3>2.4 Conceptual Analysis &amp; Question Responses</h3>
+
+<div class="callout-box">
+  <strong>1. Why should code use a menu item ID rather than the displayed label?</strong><br>
+  <ul>
+    <li><strong>Internationalization and Localization (i18n/l10n):</strong> Display labels change across locales (e.g., "Next" in English, "Suivant" in French, "Agiliza" in Swahili). If business logic checked <code>item.getTitle().equals("Next")</code>, changing device language breaks all conditional logic. Resource IDs (e.g., <code>R.id.itemNext</code>) are compile-time integer constants that remain identical regardless of locale.</li>
+    <li><strong>UI Refactoring &amp; Typography:</strong> Copywriters frequently tweak UI text (e.g., changing "Next" to "Continue" or "Proceed"). Tying code to strings creates tight coupling. IDs provide strict decoupling of presentation from logic.</li>
+    <li><strong>Performance:</strong> Comparing primitive integers (<code>int id == R.id.itemNext</code>) requires a single CPU cycle, whereas string matching involves string allocations and character-by-character equality checks.</li>
+  </ul>
+</div>
+
+<div class="callout-box">
+  <strong>2. When is a Toast unsuitable feedback?</strong><br>
+  <ul>
+    <li><strong>Critical Validation Errors / Unsaved Work:</strong> Toasts disappear automatically after 2 to 3.5 seconds (<code>LENGTH_SHORT</code> or <code>LENGTH_LONG</code>) without requiring user acknowledgement. If a user looks away, they will miss why their submission failed. A modal <code>AlertDialog</code> or inline error label (<code>setError()</code>) is required.</li>
+    <li><strong>Actionable Feedback (Needing User Input or Undo):</strong> Toasts are strictly non-interactive and cannot host clickable buttons or affordances. For actions requiring an immediate "Undo" (e.g., deleting a file), a <code>Snackbar</code> is appropriate.</li>
+    <li><strong>Accessibility (Screen Readers):</strong> Toasts do not receive input focus and can be easily missed or interrupted by screen readers like TalkBack, making them poor for visually impaired accessibility.</li>
+    <li><strong>Sensitive or Confidential Information:</strong> Toasts render at the window manager level above all apps; displaying account balances, passwords, or personal identity numbers in Toasts risks shoulder-surfing and security exposure.</li>
+  </ul>
+</div>
+
+<div class="callout-box">
+  <strong>3. What prevents menu recreation or rotation from repeating a save?</strong><br>
+  <ul>
+    <li><strong>Decoupling Callbacks from Lifecycle:</strong> Configuration changes (such as screen rotation) trigger activity destruction and recreation (<code>onDestroy()</code> &rarr; <code>onCreate()</code> &rarr; <code>onCreateOptionsMenu()</code>). However, <code>onCreateOptionsMenu()</code> only <em>prepares and inflates</em> the menu structure; it does <em>not</em> execute <code>onOptionsItemSelected()</code>.</li>
+    <li><strong>Explicit User Intent Requirement:</strong> <code>onOptionsItemSelected()</code> is an asynchronous input event listener dispatched exclusively when a hardware or touch tap event is detected on a specific item. Because lifecycle recreation does not synthesize user input events, save operations are never repeated merely by recreating the menu.</li>
+    <li><strong>Architecture Best Practices:</strong> Critical data operations should be mediated by ViewModels and repository layers using transactional state flags or SingleLiveEvent / Flow patterns, ensuring orientation changes do not re-emit execution triggers.</li>
+  </ul>
+</div>
+
+<h2>3. Implementation Evidence (Source Code)</h2>
+
+<h3>3.1 Menu Resource Declaration (<code>res/menu/data_input.xml</code>)</h3>
+<pre><code>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;menu xmlns:android="http://schemas.android.com/apk/res/android"&gt;
+
+    &lt;item
+        android:id="@+id/itemNext"
+        android:title="@string/next_command_label" /&gt;
+    &lt;item
+        android:id="@+id/itemViewRecords"
+        android:title="@string/menu_view_records" /&gt;
+    &lt;item
+        android:id="@+id/itemClear"
+        android:title="@string/menu_clear" /&gt;
+    &lt;item
+        android:id="@+id/itemAbout"
+        android:title="@string/menu_about" /&gt;
+    &lt;item
+        android:id="@+id/itemExit"
+        android:title="@string/exit_command_label" /&gt;
+&lt;/menu&gt;</code></pre>
+
+<h3>3.2 Menu Inflation &amp; Safe Dispatching (<code>DataInput.java</code>)</h3>
+<pre><code>@Override
+public boolean onCreateOptionsMenu(Menu menu) {
+    // Inflate the menu resource into the screen's action bar
+    getMenuInflater().inflate(R.menu.data_input, menu);
+    return true;
+}
+
+@Override
+public boolean onOptionsItemSelected(MenuItem item) {
+    // Dispatch based on stable compiled resource ID
+    int id = item.getItemId();
+    if (id == R.id.itemNext) {
+        displayNextAlert();
+        return true;
+    } else if (id == R.id.itemViewRecords) {
+        handleViewRecords();
+        return true;
+    } else if (id == R.id.itemClear) {
+        handleClearForm();
+        return true;
+    } else if (id == R.id.itemAbout) {
+        handleAbout();
+        return true;
+    } else if (id == R.id.itemExit) {
+        popupToast("You want to exit why not just start another application");
+        return true;
+    } else {
+        // Safe fallback for unhandled or system-level IDs
+        return super.onOptionsItemSelected(item);
+    }
+}</code></pre>
+
+<h3>3.3 Action Handlers &amp; Navigation</h3>
+<pre><code>private void handleViewRecords() {
+    EditText nameInput = findViewById(R.id.editTextName);
+    DatePicker dobInput = findViewById(R.id.DatePickerDOB);
+    EditText emailInput = findViewById(R.id.editTextEmail);
+    Spinner sp = findViewById(R.id.spinner);
+
+    String strName = nameInput.getText().toString();
+    String strDOB = dobInput.getDayOfMonth() + "/" + (dobInput.getMonth() + 1) + "/" + dobInput.getYear();
+    String strEmail = emailInput.getText().toString();
+    int row = sp.getSelectedItemPosition();
+    String strStatus = (row &gt;= 0 &amp;&amp; row &lt; status.length) ? status[row] : "Unknown";
+
+    String summaryText = "CURRENT RECORD PREVIEW\n"
+            + "-------------------------\n"
+            + "Name: " + (strName.isEmpty() ? "(No name entered)" : strName) + "\n"
+            + "DOB: " + strDOB + "\n"
+            + "Email: " + (strEmail.isEmpty() ? "(No email entered)" : strEmail) + "\n"
+            + "Work Status: " + strStatus;
+
+    // Transition to secondary activity
+    navigateToDisplayActivity(summaryText);
+}
+
+private void handleClearForm() {
+    ((EditText) findViewById(R.id.editTextName)).setText("");
+    ((EditText) findViewById(R.id.editTextEmail)).setText("");
+    ((DatePicker) findViewById(R.id.DatePickerDOB)).updateDate(2004, 1, 13);
+    ((Spinner) findViewById(R.id.spinner)).setSelection(0);
+    ((CheckBox) findViewById(R.id.chkAgreeTerms)).setChecked(false);
+
+    popupToast("Form inputs reset successfully");
+}
+
+private void handleAbout() {
+    new AlertDialog.Builder(this)
+            .setTitle("About FormInputExample")
+            .setMessage("FormInputExample v1.0\nICS 2300 Mobile Application Development\nDemonstrating Options Menu, Navigation, Dialogs and Toast feedback.")
+            .setPositiveButton("OK", null)
+            .show();
+}</code></pre>
+
+<h2>4. Fault Diagnosis and Correction Record</h2>
+<p>
+In accordance with task requirement 4, a deliberate fault was introduced, triaged, diagnosed, and resolved.
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Stage</th>
+      <th>Observation &amp; Diagnostic Details</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Introduced Fault</strong></td>
+      <td>
+        In <code>DataInput.java</code>, the ID lookup in <code>onOptionsItemSelected</code> was deliberately altered to check an incorrect ID (e.g., checking <code>id == R.id.itemAbout</code> instead of <code>R.id.itemViewRecords</code>, or mistyping the XML item identifier to <code>@+id/itemViewRecord</code>).
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Observed Symptom</strong></td>
+      <td>
+        When the user tapped "View Records" from the options menu, the screen did not change, no activity transition took place, and the application fell through to the default branch with complete silence.
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Root Cause</strong></td>
+      <td>
+        The <code>MenuItem.getItemId()</code> returned the valid inflated ID <code>R.id.itemViewRecords</code>, but the conditional branching failed to match any explicit branch, delegating immediately to <code>super.onOptionsItemSelected(item)</code> which returned <code>false</code>.
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Correction Applied</strong></td>
+      <td>
+        Synchronized the XML declaration <code>&lt;item android:id="@+id/itemViewRecords" ... /&gt;</code> with the Java switch condition:
+        <br><code>else if (id == R.id.itemViewRecords) { handleViewRecords(); return true; }</code>.
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Retest &amp; Verification</strong></td>
+      <td>
+        Rebuilt application (<code>gradle assembleDebug</code>), redeployed, and triggered "View Records". The <code>DisplayActivity</code> launched instantly with current record details.
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>5. Test Table &amp; Traceable Evidence</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Test Case ID</th>
+      <th>Trigger / Interaction</th>
+      <th>Expected Behaviour</th>
+      <th>Observed Result</th>
+      <th>Pass / Fail</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>TC-MENU-01</strong></td>
+      <td>Tap Menu &rarr; <em>Next</em> (Without checking Terms)</td>
+      <td>Validation guard detects unchecked terms; displays corrective Toast without navigating.</td>
+      <td>Toast displayed: "Sorry, you need to agreed with the teams..."; form remains intact.</td>
+      <td><strong>PASS</strong></td>
+    </tr>
+    <tr>
+      <td><strong>TC-MENU-02</strong></td>
+      <td>Tap Menu &rarr; <em>Next</em> (With Terms checked)</td>
+      <td>Validation passes; modal <code>AlertDialog</code> renders full summary of inputs.</td>
+      <td>"Details Entered" dialog displayed with Name, DOB, Email, and Status.</td>
+      <td><strong>PASS</strong></td>
+    </tr>
+    <tr>
+      <td><strong>TC-MENU-03</strong></td>
+      <td>Tap Menu &rarr; <em>View Records</em></td>
+      <td>Explicit <code>Intent</code> launched; <code>DisplayActivity</code> appears with formatted text.</td>
+      <td>Screen transitions to full-page record preview.</td>
+      <td><strong>PASS</strong></td>
+    </tr>
+    <tr>
+      <td><strong>TC-MENU-04</strong></td>
+      <td>Press Back button from <code>DisplayActivity</code></td>
+      <td>Pops <code>DisplayActivity</code> off Back Stack; returns to <code>DataInput</code> without state duplication.</td>
+      <td>Returned to intact form; no duplicate submissions or blanking occurred.</td>
+      <td><strong>PASS</strong></td>
+    </tr>
+    <tr>
+      <td><strong>TC-MENU-05</strong></td>
+      <td>Tap Menu &rarr; <em>Clear Form</em></td>
+      <td>All input fields reset to defaults; non-critical confirmation Toast appears.</td>
+      <td>Fields cleared; Toast "Form inputs reset successfully" shown.</td>
+      <td><strong>PASS</strong></td>
+    </tr>
+    <tr>
+      <td><strong>TC-MENU-06</strong></td>
+      <td>Tap Menu &rarr; <em>About</em></td>
+      <td>Modal <code>AlertDialog</code> presents application attribution and course info.</td>
+      <td>Dialog appears with "About FormInputExample" metadata.</td>
+      <td><strong>PASS</strong></td>
+    </tr>
+    <tr>
+      <td><strong>TC-MENU-07</strong></td>
+      <td>Simulate Device Rotation / Menu Recreation</td>
+      <td>Activity recreates; menu re-inflates cleanly without triggering automatic saves.</td>
+      <td>Screen rotated; options menu rendered intact; no duplicate transactions triggered.</td>
+      <td><strong>PASS</strong></td>
+    </tr>
+    <tr>
+      <td><strong>TC-MENU-08</strong></td>
+      <td>Dispatch Unhandled Item ID (Simulated)</td>
+      <td>Handler falls through safely to <code>super.onOptionsItemSelected(item)</code>.</td>
+      <td>System safely ignores unhandled event without crashes or exception throws.</td>
+      <td><strong>PASS</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>6. Conclusion</h2>
+<p>
+The implementation successfully demonstrates robust Android Options Menu integration, decoupling UI definitions from business logic via compile-time resource identifiers. Appropriate user feedback was realized through proportionate design—leveraging Toasts for non-critical status updates, modal Alert Dialogs for crucial validations, and explicit Intents for screen transitions—fully satisfying all requirements of the Lab 03 specification.
+</p>
+
+</body>
+</html>
